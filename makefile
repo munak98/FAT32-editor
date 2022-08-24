@@ -32,7 +32,7 @@ $(PROJ_NAME): $(OBJ)
 	@ echo 'Finished building binary: $@'
 	@ echo ' '
  
-./obj/%.o: ./src/%.c ./src/%.h
+./obj/%.o: ./src/%.c ./headers/%.h
 	@ echo 'Building target using GCC compiler: $<'
 	$(CC) $< $(CC_FLAGS) -o $@
 	@ echo ' '

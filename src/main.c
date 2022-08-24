@@ -1,4 +1,6 @@
 #include "../headers/boot_sector.h"
+#include "../headers/dir_entry.h"
+#include "../headers/FAT.h"
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
@@ -8,14 +10,14 @@
 
 int main()
 {
-    int count;
     int fd; // File reading from
-    unsigned char *buffer;
-    boot_sector *bootSector;
+    int FirstDataSector;
+    int FirstSectorofCluster;
 
-    buffer = (unsigned char *)malloc(sizeof(unsigned char) * 512);
-    bootSector = (boot_sector *)malloc(sizeof(boot_sector));
-    if (buffer == NULL || bootSector == NULL)
+    boot_sector *bootSector = (boot_sector *)malloc(sizeof(boot_sector));
+    dir_entry *dirEntry = (dir_entry *)malloc(sizeof(dir_entry));
+
+    if (bootSector == NULL || dirEntry == NULL)
     {
         printf("Error malloc\n");
         exit(0);
@@ -26,18 +28,41 @@ int main()
     if (fd == -1)
         perror("open");
 
-    // reading the first 512 bytes (boot sector) to buffer
-    count = read(fd, buffer, 512);
-    if (count == -1)
+    // reading and structuring the boot sector in bootSector variable
+    read_boot_sector(fd, bootSector);
+
+    // variable to hold the FAT table
+    uint32_t *FAT32 = (uint32_t *)malloc(bootSector->FATSz32 * bootSector->BytesPerSec);
+
+    // jumping reserved sectors and reading the FAT into FAT32 variable
+    lseek(fd, bootSector->RsvdSecCnt * bootSector->BytesPerSec, SEEK_SET);
+    if (read(fd, FAT32, bootSector->FATSz32 * bootSector->BytesPerSec) == -1)
         perror("read");
 
-    // copying the buffer content to the struct boot_sector, which has all boot sector fields defined
-    memcpy(bootSector, buffer, sizeof(boot_sector));
+    // print the first 20 entries on FAT table
+    show_FAT(20, FAT32);
 
-    show_device_info(bootSector);
+    FirstDataSector = bootSector->RsvdSecCnt + (bootSector->NumFATs * bootSector->FATSz32);
+    FirstSectorofCluster = ((bootSector->RootClus - 2) * bootSector->SecPerClus) +
+                           FirstDataSector;
 
-    free(buffer);
+    // jumping to the first sector of the Root Cluster, computed above
+    lseek(fd, FirstSectorofCluster * bootSector->BytesPerSec, SEEK_SET);
+
+    // reading the Root Cluster first sector in chunks of 32 bytes (sector size = 512 bytes),
+    // structuring them into a dir_entry variable and printing the entry name
+    for (int i = 0; i < 16; i++)
+    {
+        lseek(fd, 32 * i, SEEK_CUR);
+        if (read(fd, dirEntry, 32) == -1)
+            perror("read");
+        if (*dirEntry->Name == 0)
+            break;
+        printf("-> %s\n", dirEntry->Name);
+    }
+
     free(bootSector);
-
+    free(dirEntry);
+    free(FAT32);
     return 0;
 }
