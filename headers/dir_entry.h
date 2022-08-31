@@ -42,6 +42,10 @@ enum Attributes
 
 typedef struct dir_struct dir_entry;
 
+dir_entry *fatherDirEntry;
 dir_entry *currDirEntry;
+
+void init_DirEntry();
+void show_entry(dir_entry *);
 
 #endif

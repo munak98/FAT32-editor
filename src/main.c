@@ -11,7 +11,7 @@
 int main()
 {
     int fd; // File reading from
-
+    char cmd[11];
     // opening flash drive file
     fd = open("/dev/sdb", O_RDWR);
     if (fd == -1)
@@ -26,12 +26,19 @@ int main()
     // reading the FAT
     set_FAT(fd);
 
-    // print the first 20 entries on FAT
-    show_FAT(20);
+    init_DirEntry();
 
-    set_first_data_sector();
+    while (1)
+    {
+        printf("%s -> ", currDirEntry->Name);
+        printf("not?\n");
 
-    traverse_device(fd);
+        scanf("%s", cmd);
+        printf("cmmd %s\n", cmd);
+
+        exec(fd, cmd);
+        printf("problem?\n");
+    }
 
     free(BS);
     free(FAT32);
