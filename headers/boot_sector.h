@@ -52,11 +52,11 @@ struct boot_sector_struct
 
 typedef struct boot_sector_struct boot_sector;
 
-void show_device_info(boot_sector *);
-void check_sig(boot_sector *);
+void show_device_info();
+void check_sig();
 
-void read_boot_sector(int, boot_sector *);
+void set_BS(int);
 
-extern boot_sector *bootSector;
+boot_sector *BS;
 
 #endif

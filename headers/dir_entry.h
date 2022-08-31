@@ -7,7 +7,7 @@ Version 1.03
 
 #ifndef DIR_H
 #define DIR_H
-
+#define DIR_ENTRY_SIZE 32
 #include <inttypes.h>
 
 #pragma pack(push)
@@ -15,7 +15,7 @@ Version 1.03
 
 struct dir_struct
 {
-    uint8_t Name[11];
+    char Name[11];
     uint8_t Attr;
     uint8_t NTRes;
     uint8_t CrtTimeTenth;
@@ -30,8 +30,18 @@ struct dir_struct
 };
 #pragma pack(pop)
 
+enum Attributes
+{
+    AttrReadOnly = 0x01,
+    AttrHidden = 0x02,
+    AttrSystem = 0x04,
+    AttrVolumeLabel = 0x08,
+    AttrDirectory = 0x10,
+    AttrArchive = 0x20,
+};
+
 typedef struct dir_struct dir_entry;
 
-extern dir_entry *dirEntry;
+dir_entry *currDirEntry;
 
 #endif
