@@ -9,6 +9,9 @@ Version 1.03
 #define DIR_H
 #define DIR_ENTRY_SIZE 32
 #include <inttypes.h>
+#include <string.h>
+#include <wchar.h>
+#include <uchar.h>
 
 #pragma pack(push)
 #pragma pack(1)
@@ -28,6 +31,18 @@ struct dir_struct
     uint16_t FstClusLO;
     uint32_t FileSize;
 };
+
+struct long_dir_struct
+{
+    uint8_t LDIR_Ord;
+    uint8_t LDIR_Name1[10];
+    uint8_t LDIR_Attr;
+    uint8_t LDIR_Type;
+    uint8_t LDIR_Chksum;
+    uint8_t LDIR_Name2[12];
+    uint16_t LDIR_FstClusLO;
+    uint8_t LDIR_Name3[4];
+};
 #pragma pack(pop)
 
 enum Attributes
@@ -40,8 +55,14 @@ enum Attributes
     AttrArchive = 0x20,
 };
 
+typedef struct long_dir_struct long_dir_entry;
 typedef struct dir_struct dir_entry;
 
+dir_entry *fatherDirEntry;
 dir_entry *currDirEntry;
+dir_entry *rootDirEntry;
+
+void init_DirEntry();
+void show_entry(dir_entry *, uint8_t *long_name, int flag);
 
 #endif

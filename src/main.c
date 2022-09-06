@@ -1,6 +1,7 @@
 #include "../headers/boot_sector.h"
 #include "../headers/dir_entry.h"
 #include "../headers/FAT.h"
+#include "../headers/utils.h"
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
@@ -11,7 +12,6 @@
 int main()
 {
     int fd; // File reading from
-
     // opening flash drive file
     fd = open("/dev/sdb", O_RDWR);
     if (fd == -1)
@@ -26,12 +26,17 @@ int main()
     // reading the FAT
     set_FAT(fd);
 
-    // print the first 20 entries on FAT
-    show_FAT(20);
+    init_DirEntry();
+    char *cmd = NULL;
+    char **tokens = NULL;
 
-    set_first_data_sector();
-
-    traverse_device(fd);
+    while (1)
+    {
+        show_prompt();
+        cmd = read_line();
+        tokens = split(cmd, " ");
+        exec(fd, tokens);
+    }
 
     free(BS);
     free(FAT32);

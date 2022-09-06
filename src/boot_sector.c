@@ -75,7 +75,5 @@ void set_BS(int fd)
     if (read(fd, BS, 512) == -1)
         perror("read");
 
-    show_device_info();
-
     check_sig();
 };
