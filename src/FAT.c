@@ -2,10 +2,11 @@
 #include "../headers/dir_entry.h"
 #include "../headers/FAT.h"
 #include <fcntl.h>
+
+#include <unistd.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <errno.h>
 
 char *builtin_str[] = {
@@ -14,7 +15,7 @@ char *builtin_str[] = {
     "cat",
 };
 
-void (*builtin_func[])(int) = {
+void (*builtin_func[])(int, char *) = {
     &cd,
     &ls,
     &cat,
@@ -104,24 +105,20 @@ void print_identation(int count)
     }
 }
 
-// TO DO: passar um nome como arg com espaço em branco
-// ou printar o nome dos arquivos reais usando long file name
-dir_entry *look_up_entry(int fd, u_int8_t flags)
+// TODO: consertar bug no cat
+dir_entry *look_up_entry(int fd, char *arg, u_int8_t flags)
 {
     dir_entry *auxDirEntry;
     auxDirEntry = (dir_entry *)malloc(sizeof(dir_entry));
 
     int8_t buffer[DIR_ENTRY_SIZE];
-    int is_long_file, is_dir;
-    dir_entry curr_dir;
-    char name[11];
+    long_dir_entry *longDirEntry = malloc(sizeof(long_dir_entry));
+    uint8_t *long_name = malloc(sizeof(uint8_t) * 26);
+    int is_long_file;
+    int holding_long_name = 0;
 
     lseek(fd, get_first_sec_of_clus(currDirEntry->FstClusHI << 8 | currDirEntry->FstClusLO) * BS->BytesPerSec, SEEK_SET);
 
-    if (flags & NeedsName)
-    {
-        fgets(name, sizeof(name), stdin);
-    }
     while (1)
     {
         if (read(fd, &buffer, DIR_ENTRY_SIZE) < 1)
@@ -132,86 +129,112 @@ dir_entry *look_up_entry(int fd, u_int8_t flags)
             return NULL;
         }
 
-        is_dir = buffer[0x0B] & AttrDirectory;
         is_long_file = (buffer[0x0B] & (AttrReadOnly | AttrHidden | AttrSystem | AttrVolumeLabel)) == 0x0F;
 
         if (is_long_file)
-            continue;
+        {
+            holding_long_name = 1;
+
+            memcpy(longDirEntry, buffer, sizeof(long_dir_entry));
+            memcpy(long_name, longDirEntry->LDIR_Name1, 10);
+            memcpy(&long_name[10], longDirEntry->LDIR_Name2, 12);
+            memcpy(&long_name[22], longDirEntry->LDIR_Name3, 4);
+        }
         else
         {
             memcpy(auxDirEntry, buffer, sizeof(dir_entry));
             if (flags & DirEntries) // ls command
             {
-                show_entry(auxDirEntry);
+                show_entry(auxDirEntry, long_name, holding_long_name);
             }
             else
             {
-                // for (size_t i = 0; i < strlen(name) - 1; i++)
-                // {
-                //     printf("%c %c\n", buffer[i], name[i + 1]);
-                // }
-                if (memcmp(buffer, &name[1], strlen(name) - 1) == 0) // cd and cat commands
+                if (memcmp(buffer, arg, strlen(arg)) == 0) // cd and cat commands
                     return auxDirEntry;
             }
+            holding_long_name = 0;
         }
     }
     free(auxDirEntry);
 }
 
-void cat(int fd)
+void cat(int fd, char *arg)
 {
     dir_entry *auxDirEntry;
     auxDirEntry = (dir_entry *)malloc(sizeof(dir_entry));
-    auxDirEntry = look_up_entry(fd, 0x4);
+    auxDirEntry = look_up_entry(fd, arg, 0x4);
     if (auxDirEntry == NULL)
     {
-        printf("No such file in directory\n");
+        printf("[error] no such file in directory\n");
+        return;
+    }
+    if (auxDirEntry->Attr & AttrDirectory)
+    {
+        printf("[error] name is a directory, not a file\n");
         return;
     }
 
     char *content = malloc(sizeof(char) * auxDirEntry->FileSize);
     get_file_content(fd, auxDirEntry->FstClusHI << 8 | auxDirEntry->FstClusLO, auxDirEntry->FileSize, content);
-    printf("%s", content);
+    printf("%s\n", content);
     free(content);
     free(auxDirEntry);
     return;
 }
 
-void ls(int fd)
+void ls(int fd, char *arg)
 {
-    look_up_entry(fd, 0x1);
+    printf("\t%-12s%-20s%-10s\t\n", "File type", "Short name", "Long name");
+    printf("\t===========================================\n");
+    look_up_entry(fd, arg, 0x1);
 }
 
-void cd(int fd)
+void cd(int fd, char *arg)
 {
+    if (strcmp(arg, ".") == 0)
+    {
+        return;
+    }
+    if (strcmp(arg, "..") == 0)
+    {
+        *currDirEntry = *fatherDirEntry;
+        fatherDirEntry = look_up_entry(fd, currDirEntry->Name, 0x4);
+        if (fatherDirEntry == NULL)
+        {
+            fatherDirEntry = rootDirEntry;
+        }
+        return;
+    }
     dir_entry *auxDirEntry;
     auxDirEntry = (dir_entry *)malloc(sizeof(dir_entry));
-    auxDirEntry = look_up_entry(fd, 0x4);
+    auxDirEntry = look_up_entry(fd, arg, 0x4);
     if (auxDirEntry == NULL)
     {
         printf("No such directory\n");
-        return;
     }
-    if (auxDirEntry->Attr & AttrDirectory)
+    else if (auxDirEntry->Attr & AttrDirectory)
     {
+        *fatherDirEntry = *currDirEntry;
         *currDirEntry = *auxDirEntry;
-        return;
     }
     else
     {
         printf("File is not a directory\n");
-        return;
     }
     free(auxDirEntry);
+    return;
 }
 
-void exec(int fd, char *cmd)
+void exec(int fd, char **tokens)
 {
+    char *cmd = tokens[0];
+    char *args = tokens[1];
+
     for (size_t i = 0; i < 4; i++)
     {
         if (strcmp(cmd, builtin_str[i]) == 0)
         {
-            builtin_func[i](fd);
+            builtin_func[i](fd, args);
             return;
         }
     }

@@ -1,6 +1,7 @@
 #include "../headers/boot_sector.h"
 #include "../headers/dir_entry.h"
 #include "../headers/FAT.h"
+#include "../headers/utils.h"
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
@@ -11,7 +12,6 @@
 int main()
 {
     int fd; // File reading from
-    char cmd[11];
     // opening flash drive file
     fd = open("/dev/sdb", O_RDWR);
     if (fd == -1)
@@ -27,17 +27,15 @@ int main()
     set_FAT(fd);
 
     init_DirEntry();
+    char *cmd = NULL;
+    char **tokens = NULL;
 
     while (1)
     {
-        printf("%s -> ", currDirEntry->Name);
-        printf("not?\n");
-
-        scanf("%s", cmd);
-        printf("cmmd %s\n", cmd);
-
-        exec(fd, cmd);
-        printf("problem?\n");
+        show_prompt();
+        cmd = read_line();
+        tokens = split(cmd, " ");
+        exec(fd, tokens);
     }
 
     free(BS);

@@ -5,6 +5,13 @@
         "unistd.h": "c",
         "dir_entry.h": "c",
         "inttypes.h": "c",
-        "fat.h": "c"
+        "fat.h": "c",
+        "ctype.h": "c",
+        "utils.h": "c",
+        "string.h": "c",
+        "wchar.h": "c",
+        "locale.h": "c",
+        "random": "c",
+        "limits.h": "c"
     }
 }

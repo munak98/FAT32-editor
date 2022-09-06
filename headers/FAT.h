@@ -10,9 +10,9 @@ void show_FAT(int);
 
 int get_first_sec_of_clus(int);
 
-void cd(int);
-void ls(int);
-void cat(int);
+void cd(int, char *);
+void ls(int, char *);
+void cat(int, char *);
 
 enum Flags
 {
@@ -20,6 +20,6 @@ enum Flags
     NeedsName = 0x4,
 };
 
-void exec(int, char *);
+void exec(int, char **);
 
 #endif

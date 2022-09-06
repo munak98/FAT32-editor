@@ -17,19 +17,38 @@ void init_DirEntry()
     currDirEntry->FstClusHI = BS->RootClus >> 8;
     currDirEntry->FstClusLO = BS->RootClus & 0xFF;
 
+    rootDirEntry = (dir_entry *)malloc(sizeof(dir_entry));
     fatherDirEntry = (dir_entry *)malloc(sizeof(dir_entry));
     *fatherDirEntry = *currDirEntry;
+    *rootDirEntry = *currDirEntry;
 }
 
-void show_entry(dir_entry *entry)
+void show_entry(dir_entry *entry, uint8_t *long_name, int flag)
 {
     int dir, volum_label;
     dir = entry->Attr & AttrDirectory;
     volum_label = entry->Attr & AttrVolumeLabel;
     if (dir)
-        printf("%-11s\t %-12s\n", entry->Name, "DIR");
+    {
+
+        printf("\t%-12s%-20s", "DIR", entry->Name);
+    }
     else if (volum_label)
-        printf("%-11s\t %-12s\n", entry->Name, "VOL LABEL");
+    {
+
+        printf("\t%-12s%-20s", "VOLUME", entry->Name);
+    }
     else
-        printf("%-11s\t %-12s\n", entry->Name, "FILE");
+    {
+        printf("\t%-12s%-20s", "FILE", entry->Name);
+    }
+
+    if (flag)
+    {
+        for (int i = 0; i < 26; i++)
+        {
+            printf("%lc", long_name[i]);
+        }
+    }
+    printf("\n");
 }
