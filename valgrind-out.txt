@@ -1,0 +1,151 @@
+==717706== Memcheck, a memory error detector
+==717706== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==717706== Using Valgrind-3.15.0-608cb11914-20190413 and LibVEX; rerun with -h for copyright info
+==717706== Command: ./exec
+==717706== Parent PID: 717705
+==717706== 
+--717706-- 
+--717706-- Valgrind options:
+--717706--    --leak-check=full
+--717706--    --show-leak-kinds=all
+--717706--    --track-origins=yes
+--717706--    --verbose
+--717706--    --log-file=valgrind-out.txt
+--717706-- Contents of /proc/version:
+--717706--   Linux version 5.15.0-46-generic (buildd@lcy02-amd64-007) (gcc (Ubuntu 9.4.0-1ubuntu1~20.04.1) 9.4.0, GNU ld (GNU Binutils for Ubuntu) 2.34) #49~20.04.1-Ubuntu SMP Thu Aug 4 19:15:44 UTC 2022
+--717706-- 
+--717706-- Arch and hwcaps: AMD64, LittleEndian, amd64-cx16-lzcnt-rdtscp-sse3-ssse3-avx-avx2-bmi-f16c-rdrand
+--717706-- Page sizes: currently 4096, max supported 4096
+--717706-- Valgrind library directory: /usr/lib/x86_64-linux-gnu/valgrind
+--717706-- Reading syms from /home/munak98/Materias/FSO/FAT32-editor/exec
+--717706-- Reading syms from /usr/lib/x86_64-linux-gnu/ld-2.31.so
+--717706--   Considering /usr/lib/x86_64-linux-gnu/ld-2.31.so ..
+--717706--   .. CRC mismatch (computed 0306b78c wanted 8d362b37)
+--717706--   Considering /lib/x86_64-linux-gnu/ld-2.31.so ..
+--717706--   .. CRC mismatch (computed 0306b78c wanted 8d362b37)
+--717706--   Considering /usr/lib/debug/lib/x86_64-linux-gnu/ld-2.31.so ..
+--717706--   .. CRC is valid
+--717706-- Reading syms from /usr/lib/x86_64-linux-gnu/valgrind/memcheck-amd64-linux
+--717706--    object doesn't have a symbol table
+--717706--    object doesn't have a dynamic symbol table
+--717706-- Scheduler: using generic scheduler lock implementation.
+--717706-- Reading suppressions file: /usr/lib/x86_64-linux-gnu/valgrind/default.supp
+==717706== embedded gdbserver: reading from /tmp/vgdb-pipe-from-vgdb-to-717706-by-root-on-???
+==717706== embedded gdbserver: writing to   /tmp/vgdb-pipe-to-vgdb-from-717706-by-root-on-???
+==717706== embedded gdbserver: shared mem   /tmp/vgdb-pipe-shared-mem-vgdb-717706-by-root-on-???
+==717706== 
+==717706== TO CONTROL THIS PROCESS USING vgdb (which you probably
+==717706== don't want to do, unless you know exactly what you're doing,
+==717706== or are doing some strange experiment):
+==717706==   /usr/lib/x86_64-linux-gnu/valgrind/../../bin/vgdb --pid=717706 ...command...
+==717706== 
+==717706== TO DEBUG THIS PROCESS USING GDB: start GDB like this
+==717706==   /path/to/gdb ./exec
+==717706== and then give GDB the following command
+==717706==   target remote | /usr/lib/x86_64-linux-gnu/valgrind/../../bin/vgdb --pid=717706
+==717706== --pid is optional if only one valgrind process is running
+==717706== 
+--717706-- REDIR: 0x4022e10 (ld-linux-x86-64.so.2:strlen) redirected to 0x580c9ce2 (???)
+--717706-- REDIR: 0x4022be0 (ld-linux-x86-64.so.2:index) redirected to 0x580c9cfc (???)
+--717706-- Reading syms from /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_core-amd64-linux.so
+--717706--    object doesn't have a symbol table
+--717706-- Reading syms from /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so
+--717706--    object doesn't have a symbol table
+==717706== WARNING: new redirection conflicts with existing -- ignoring it
+--717706--     old: 0x04022e10 (strlen              ) R-> (0000.0) 0x580c9ce2 ???
+--717706--     new: 0x04022e10 (strlen              ) R-> (2007.0) 0x0483f060 strlen
+--717706-- REDIR: 0x401f5f0 (ld-linux-x86-64.so.2:strcmp) redirected to 0x483ffd0 (strcmp)
+--717706-- REDIR: 0x4023370 (ld-linux-x86-64.so.2:mempcpy) redirected to 0x4843a20 (mempcpy)
+--717706-- Reading syms from /usr/lib/x86_64-linux-gnu/libc-2.31.so
+--717706--   Considering /usr/lib/x86_64-linux-gnu/libc-2.31.so ..
+--717706--   .. CRC mismatch (computed ef41b1a0 wanted f854b801)
+--717706--   Considering /lib/x86_64-linux-gnu/libc-2.31.so ..
+--717706--   .. CRC mismatch (computed ef41b1a0 wanted f854b801)
+--717706--   Considering /usr/lib/debug/lib/x86_64-linux-gnu/libc-2.31.so ..
+--717706--   .. CRC is valid
+--717706-- REDIR: 0x49044b0 (libc.so.6:memmove) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x49037b0 (libc.so.6:strncpy) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x49047e0 (libc.so.6:strcasecmp) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x49030d0 (libc.so.6:strcat) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x4903810 (libc.so.6:rindex) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x4905c80 (libc.so.6:rawmemchr) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x4920d10 (libc.so.6:wmemchr) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x4920850 (libc.so.6:wcscmp) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x4904610 (libc.so.6:mempcpy) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x4904440 (libc.so.6:bcmp) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x4903740 (libc.so.6:strncmp) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x4903180 (libc.so.6:strcmp) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x4904570 (libc.so.6:memset) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x4920810 (libc.so.6:wcschr) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x49036a0 (libc.so.6:strnlen) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x4903260 (libc.so.6:strcspn) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x4904830 (libc.so.6:strncasecmp) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x4903200 (libc.so.6:strcpy) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x4904980 (libc.so.6:memcpy@@GLIBC_2.14) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x4921f80 (libc.so.6:wcsnlen) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x4920890 (libc.so.6:wcscpy) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x4903850 (libc.so.6:strpbrk) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x4903130 (libc.so.6:index) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x4903660 (libc.so.6:strlen) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x490cbd0 (libc.so.6:memrchr) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x4904880 (libc.so.6:strcasecmp_l) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x4904400 (libc.so.6:memchr) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x4920960 (libc.so.6:wcslen) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x4903b10 (libc.so.6:strspn) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x4904780 (libc.so.6:stpncpy) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x4904720 (libc.so.6:stpcpy) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x4905cc0 (libc.so.6:strchrnul) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x49048d0 (libc.so.6:strncasecmp_l) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--717706-- REDIR: 0x49ec410 (libc.so.6:__strrchr_avx2) redirected to 0x483ea10 (rindex)
+--717706-- REDIR: 0x48fe110 (libc.so.6:malloc) redirected to 0x483b780 (malloc)
+--717706-- REDIR: 0x49ec220 (libc.so.6:__strchrnul_avx2) redirected to 0x4843540 (strchrnul)
+--717706-- REDIR: 0x49ef5d0 (libc.so.6:__mempcpy_avx_unaligned_erms) redirected to 0x4843660 (mempcpy)
+==717706== 
+==717706== Process terminating with default action of signal 2 (SIGINT)
+==717706==    at 0x4972002: read (read.c:26)
+==717706==    by 0x48F4BCE: _IO_file_underflow@@GLIBC_2.2.5 (fileops.c:517)
+==717706==    by 0x48F5FB5: _IO_default_uflow (genops.c:362)
+==717706==    by 0x10AD76: read_line (in /home/munak98/Materias/FSO/FAT32-editor/exec)
+==717706==    by 0x10A776: main (in /home/munak98/Materias/FSO/FAT32-editor/exec)
+--717706-- REDIR: 0x48fe700 (libc.so.6:free) redirected to 0x483c9d0 (free)
+==717706== 
+==717706== HEAP SUMMARY:
+==717706==     in use at exit: 619 bytes in 5 blocks
+==717706==   total heap usage: 7 allocs, 2 frees, 2,667 bytes allocated
+==717706== 
+==717706== Searching for pointers to 5 not-freed blocks
+==717706== Checked 69,568 bytes
+==717706== 
+==717706== 11 bytes in 1 blocks are still reachable in loss record 1 of 5
+==717706==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==717706==    by 0x10AD3C: read_line (in /home/munak98/Materias/FSO/FAT32-editor/exec)
+==717706==    by 0x10A776: main (in /home/munak98/Materias/FSO/FAT32-editor/exec)
+==717706== 
+==717706== 32 bytes in 1 blocks are still reachable in loss record 2 of 5
+==717706==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==717706==    by 0x10A7DB: init_DirEntry (in /home/munak98/Materias/FSO/FAT32-editor/exec)
+==717706==    by 0x10A752: main (in /home/munak98/Materias/FSO/FAT32-editor/exec)
+==717706== 
+==717706== 32 bytes in 1 blocks are still reachable in loss record 3 of 5
+==717706==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==717706==    by 0x10A83D: init_DirEntry (in /home/munak98/Materias/FSO/FAT32-editor/exec)
+==717706==    by 0x10A752: main (in /home/munak98/Materias/FSO/FAT32-editor/exec)
+==717706== 
+==717706== 32 bytes in 1 blocks are still reachable in loss record 4 of 5
+==717706==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==717706==    by 0x10A84E: init_DirEntry (in /home/munak98/Materias/FSO/FAT32-editor/exec)
+==717706==    by 0x10A752: main (in /home/munak98/Materias/FSO/FAT32-editor/exec)
+==717706== 
+==717706== 512 bytes in 1 blocks are still reachable in loss record 5 of 5
+==717706==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==717706==    by 0x10A69C: set_BS (in /home/munak98/Materias/FSO/FAT32-editor/exec)
+==717706==    by 0x10A748: main (in /home/munak98/Materias/FSO/FAT32-editor/exec)
+==717706== 
+==717706== LEAK SUMMARY:
+==717706==    definitely lost: 0 bytes in 0 blocks
+==717706==    indirectly lost: 0 bytes in 0 blocks
+==717706==      possibly lost: 0 bytes in 0 blocks
+==717706==    still reachable: 619 bytes in 5 blocks
+==717706==         suppressed: 0 bytes in 0 blocks
+==717706== 
+==717706== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)

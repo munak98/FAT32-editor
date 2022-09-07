@@ -10,9 +10,14 @@
 
 void show_prompt()
 {
-
-    printf("%s", currDirEntry->Name);
-    printf("-> ");
+    for (int i = 0; i < 11; i++)
+    {
+        if (currDirEntry->Name[i] != ' ')
+            printf("%c", currDirEntry->Name[i]);
+        else
+            break;
+    }
+    printf(" -> ");
 }
 
 char *read_line(void)
@@ -89,4 +94,14 @@ char **split(char *line, char *delimiter)
     }
 
     return tokens;
+}
+
+void free_content(uint8_t **vector)
+{
+    int i = 0;
+    while (vector[i] != NULL)
+    {
+        free(vector[i]);
+        i++;
+    }
 }

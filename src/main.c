@@ -23,9 +23,6 @@ int main()
     // reading and structuring the boot sector
     set_BS(fd);
 
-    // reading the FAT
-    set_FAT(fd);
-
     init_DirEntry();
     char *cmd = NULL;
     char **tokens = NULL;
@@ -39,7 +36,8 @@ int main()
     }
 
     free(BS);
-    free(FAT32);
     free(currDirEntry);
     return 0;
 }
+
+// TODO: entrar com comandos usando readline e perguntar o nome do arquivo
