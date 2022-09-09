@@ -64,16 +64,23 @@ dir_entry *currDirEntry;
 dir_entry *rootDirEntry;
 
 int is_long_file(uint8_t);
+int is_hidden(uint8_t);
+
+int is_system(uint8_t);
+int is_deleted(uint8_t);
+
 int is_dir(dir_entry *);
 int is_volum(dir_entry *);
 
-uint8_t *get_short_name(dir_entry *);
+uint16_t first_clu(dir_entry *);
+
+char *get_short_name(dir_entry *);
 uint8_t *get_long_name(long_dir_entry *);
 void print_long_name(uint8_t **);
 void init_DirEntry();
 int copy_name_fields(long_dir_entry *, uint8_t *);
 int size(uint8_t *, int);
 
-void show_entry(dir_entry *, uint8_t **);
+void show_entry(dir_entry *, uint8_t **, int);
 
 #endif

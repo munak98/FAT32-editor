@@ -27,6 +27,8 @@ int main()
     char *cmd = NULL;
     char **tokens = NULL;
 
+    uint8_t name[10];
+
     while (1)
     {
         show_prompt();

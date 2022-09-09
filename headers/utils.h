@@ -9,3 +9,4 @@ void show_prompt();
 void init_buffer(uint8_t *buffer);
 
 void free_content(uint8_t **);
+void print_ls_header();

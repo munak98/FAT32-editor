@@ -55,7 +55,7 @@ int copy_name_fields(long_dir_entry *longDirEntry, uint8_t *long_name)
     return used;
 }
 
-uint8_t *get_short_name(dir_entry *dirEntry)
+char *get_short_name(dir_entry *dirEntry)
 {
     int i = 0;
     for (i; i < 11; i++)
@@ -64,7 +64,7 @@ uint8_t *get_short_name(dir_entry *dirEntry)
             break;
     }
 
-    uint8_t *short_name = malloc(sizeof(uint8_t) * (i + 1));
+    char *short_name = malloc(sizeof(char) * (i + 1));
     for (int j = 0; j < i; j++)
     {
         short_name[j] = dirEntry->Name[j];
@@ -74,16 +74,22 @@ uint8_t *get_short_name(dir_entry *dirEntry)
     return short_name;
 }
 
-void show_entry(dir_entry *entry, uint8_t **long_name)
+void show_entry(dir_entry *entry, uint8_t **long_name, int show_hidden)
 {
+    if (is_hidden(entry->Attr))
+    {
+        printf("%d\n", show_hidden);
+    }
+
+    printf("passing\n");
     if (is_dir(entry))
-        printf("\t%-12s%-20.11s", "DIR", entry->Name);
+        printf("\t%-12s%-15.11s", "DIR", entry->Name);
 
     else if (is_volum(entry))
-        printf("\t%-12s%-20.11s", "VOLUME", entry->Name);
+        printf("\t%-12s%-15.11s", "VOLUME", entry->Name);
 
     else
-        printf("\t%-12s%-20.11s", "FILE", entry->Name);
+        printf("\t%-12s%-15.11s", "FILE", entry->Name);
 
     if (long_name)
         print_long_name(long_name);
@@ -124,4 +130,25 @@ int is_dir(dir_entry *entry)
 int is_volum(dir_entry *entry)
 {
     return ((entry->Attr & AttrVolumeLabel) == AttrVolumeLabel);
+}
+
+int is_hidden(uint8_t flag)
+{
+    printf("0x%x\n", (flag));
+    return ((flag & AttrHidden) == AttrHidden);
+}
+
+int is_system(uint8_t flag)
+{
+    return ((flag & AttrSystem) == AttrSystem);
+}
+
+int is_deleted(uint8_t flag)
+{
+    return flag == 0xE5;
+}
+
+uint16_t first_clu(dir_entry *entry)
+{
+    return (entry->FstClusHI << 8 | entry->FstClusLO);
 }

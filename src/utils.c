@@ -105,3 +105,9 @@ void free_content(uint8_t **vector)
         i++;
     }
 }
+
+void print_ls_header()
+{
+    printf("\t%-12s%-15.11s%-10s\t\n", "File type", "Short name", "Long name");
+    printf("\t=============================================\n");
+}
