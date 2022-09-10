@@ -31,8 +31,11 @@ int main()
 
     while (1)
     {
+
         show_prompt();
         cmd = read_line();
+        if (cmd[0] == '\0')
+            continue;
         tokens = split(cmd, " ");
         exec(fd, tokens);
     }
@@ -41,5 +44,3 @@ int main()
     free(currDirEntry);
     return 0;
 }
-
-// TODO: entrar com comandos usando readline e perguntar o nome do arquivo

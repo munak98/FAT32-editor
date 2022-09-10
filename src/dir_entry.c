@@ -13,46 +13,17 @@
 void init_DirEntry()
 {
     char root[11] = "home";
-    currDirEntry = (dir_entry *)malloc(sizeof(dir_entry));
-
-    memcpy(currDirEntry->Name, &root, 11);
-    currDirEntry->FstClusHI = BS->RootClus >> 8;
-    currDirEntry->FstClusLO = BS->RootClus & 0xFF;
-
     rootDirEntry = (dir_entry *)malloc(sizeof(dir_entry));
+    rootDirEntry->FstClusHI = BS->RootClus >> 8;
+    rootDirEntry->FstClusLO = BS->RootClus & 0xFF;
+    memcpy(rootDirEntry->Name, &root, 11);
+    rootDirEntry->LongName = NULL;
+
+    currDirEntry = (dir_entry *)malloc(sizeof(dir_entry));
     fatherDirEntry = (dir_entry *)malloc(sizeof(dir_entry));
-    *fatherDirEntry = *currDirEntry;
-    *rootDirEntry = *currDirEntry;
-}
 
-int size(uint8_t *name, int max_size)
-{
-    int i = 0;
-    while (name[i] != 255 && name[i] != 0 && (i < max_size))
-    {
-        i += 2;
-    }
-    return i;
-}
-
-int copy_field(uint8_t *field, int max_size, uint8_t *long_name)
-{
-    int s = size(field, max_size);
-    memcpy(long_name, field, s);
-    return s;
-}
-
-int copy_name_fields(long_dir_entry *longDirEntry, uint8_t *long_name)
-{
-    int used = 0;
-    used += copy_field(longDirEntry->LDIR_Name1, 10, long_name);
-    long_name = realloc(long_name, used + 12);
-    used += copy_field(longDirEntry->LDIR_Name2, 12, &long_name[used]);
-    long_name = realloc(long_name, used + 4);
-    used += copy_field(longDirEntry->LDIR_Name3, 4, &long_name[used]);
-    long_name = realloc(long_name, used);
-    long_name[used] = '\0';
-    return used;
+    *currDirEntry = *rootDirEntry;
+    *fatherDirEntry = *rootDirEntry;
 }
 
 char *get_short_name(dir_entry *dirEntry)
@@ -74,14 +45,34 @@ char *get_short_name(dir_entry *dirEntry)
     return short_name;
 }
 
-void show_entry(dir_entry *entry, uint8_t **long_name, int show_hidden)
+int copy_name_fields(long_dir_entry *longDirEntry, uint16_t *long_filename)
 {
-    if (is_hidden(entry->Attr))
-    {
-        printf("%d\n", show_hidden);
-    }
+    char *p = memccpy(long_filename, longDirEntry->LDIR_Name1, 0xFFFF, 5 * sizeof(uint16_t));
 
-    printf("passing\n");
+    if (p == NULL)
+        p = memccpy(&long_filename[5], longDirEntry->LDIR_Name2, 0xFFFF, 6 * sizeof(uint16_t));
+    if (p == NULL)
+        p = memccpy(&long_filename[11], longDirEntry->LDIR_Name3, 0xFFFF, 2 * sizeof(uint16_t));
+    if (p == NULL)
+        return 1;
+    else
+        return 0;
+}
+
+void print_long_name(uint16_t *name)
+{
+    int i = 0;
+    if (!name)
+        printf("long name null\n");
+    while (name[i] != 0)
+    {
+        printf("%lc", name[i]);
+        i++;
+    }
+}
+
+void show_entry(dir_entry *entry, uint16_t *long_name, int has_long_name)
+{
     if (is_dir(entry))
         printf("\t%-12s%-15.11s", "DIR", entry->Name);
 
@@ -91,30 +82,10 @@ void show_entry(dir_entry *entry, uint8_t **long_name, int show_hidden)
     else
         printf("\t%-12s%-15.11s", "FILE", entry->Name);
 
-    if (long_name)
+    if (has_long_name)
         print_long_name(long_name);
 
     printf("\n");
-}
-
-void print_name_part(uint8_t *name)
-{
-    int i = 0;
-    while (name[i] != '\0')
-    {
-        printf("%lc", name[i]);
-        i += 2;
-    }
-}
-
-void print_long_name(uint8_t **name)
-{
-    int i = 0;
-    while (name[i] != NULL)
-    {
-        print_name_part(name[i]);
-        i++;
-    }
 }
 
 int is_long_file(uint8_t flag)
@@ -134,7 +105,6 @@ int is_volum(dir_entry *entry)
 
 int is_hidden(uint8_t flag)
 {
-    printf("0x%x\n", (flag));
     return ((flag & AttrHidden) == AttrHidden);
 }
 

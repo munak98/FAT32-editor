@@ -31,18 +31,19 @@ struct dir_struct
     uint16_t WrtDate;
     uint16_t FstClusLO;
     uint32_t FileSize;
+    uint16_t *LongName;
 };
 
 struct long_dir_struct
 {
     uint8_t LDIR_Ord;
-    uint8_t LDIR_Name1[10];
+    uint16_t LDIR_Name1[5];
     uint8_t LDIR_Attr;
     uint8_t LDIR_Type;
     uint8_t LDIR_Chksum;
-    uint8_t LDIR_Name2[12];
+    uint16_t LDIR_Name2[6];
     uint16_t LDIR_FstClusLO;
-    uint8_t LDIR_Name3[4];
+    uint16_t LDIR_Name3[2];
 };
 #pragma pack(pop)
 
@@ -76,11 +77,11 @@ uint16_t first_clu(dir_entry *);
 
 char *get_short_name(dir_entry *);
 uint8_t *get_long_name(long_dir_entry *);
-void print_long_name(uint8_t **);
+void print_long_name(uint16_t *);
 void init_DirEntry();
-int copy_name_fields(long_dir_entry *, uint8_t *);
+int copy_name_fields(long_dir_entry *, uint16_t *);
 int size(uint8_t *, int);
 
-void show_entry(dir_entry *, uint8_t **, int);
+void show_entry(dir_entry *, uint16_t *, int);
 
 #endif

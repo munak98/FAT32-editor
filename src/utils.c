@@ -10,13 +10,10 @@
 
 void show_prompt()
 {
-    for (int i = 0; i < 11; i++)
-    {
-        if (currDirEntry->Name[i] != ' ')
-            printf("%c", currDirEntry->Name[i]);
-        else
-            break;
-    }
+    if (currDirEntry->LongName)
+        print_long_name(currDirEntry->LongName);
+    else
+        printf("%s", currDirEntry->Name);
     printf(" -> ");
 }
 
@@ -85,13 +82,9 @@ char **split(char *line, char *delimiter)
 
     tokens[0] = trim(strtok(line, delimiter), ' ');
     if ((token = strtok(NULL, "\n")) != NULL)
-    {
         tokens[1] = token;
-    }
     else
-    {
         tokens[1] = NULL;
-    }
 
     return tokens;
 }
@@ -110,4 +103,16 @@ void print_ls_header()
 {
     printf("\t%-12s%-15.11s%-10s\t\n", "File type", "Short name", "Long name");
     printf("\t=============================================\n");
+}
+
+int is_equal(char *name, uint16_t *long_name)
+{
+    size_t i = 0;
+    for (i = 0; i <= strlen(name); i++)
+    {
+        if (name[i] != long_name[i])
+            return 0;
+    }
+
+    return 1;
 }
