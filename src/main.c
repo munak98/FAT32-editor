@@ -23,23 +23,24 @@ int main()
     // reading and structuring the boot sector
     set_BS(fd);
 
-    // reading the FAT
-    set_FAT(fd);
-
     init_DirEntry();
     char *cmd = NULL;
     char **tokens = NULL;
 
+    uint8_t name[10];
+
     while (1)
     {
+
         show_prompt();
         cmd = read_line();
+        if (cmd[0] == '\0')
+            continue;
         tokens = split(cmd, " ");
         exec(fd, tokens);
     }
 
     free(BS);
-    free(FAT32);
     free(currDirEntry);
     return 0;
 }
