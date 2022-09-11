@@ -65,7 +65,7 @@ dir_entry *currDirEntry;
 dir_entry *rootDirEntry;
 
 int is_long_file(uint8_t);
-int is_hidden(uint8_t);
+int is_hidden(uint16_t);
 
 int is_system(uint8_t);
 int is_deleted(uint8_t);

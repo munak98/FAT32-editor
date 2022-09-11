@@ -20,9 +20,11 @@ void init_DirEntry()
     rootDirEntry->LongName = NULL;
 
     currDirEntry = (dir_entry *)malloc(sizeof(dir_entry));
+
     fatherDirEntry = (dir_entry *)malloc(sizeof(dir_entry));
 
     *currDirEntry = *rootDirEntry;
+
     *fatherDirEntry = *rootDirEntry;
 }
 
@@ -103,9 +105,9 @@ int is_volum(dir_entry *entry)
     return ((entry->Attr & AttrVolumeLabel) == AttrVolumeLabel);
 }
 
-int is_hidden(uint8_t flag)
+int is_hidden(uint16_t first_cha)
 {
-    return ((flag & AttrHidden) == AttrHidden);
+    return (first_cha == '.');
 }
 
 int is_system(uint8_t flag)

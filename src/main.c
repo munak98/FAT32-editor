@@ -13,7 +13,7 @@ int main()
 {
     int fd; // File reading from
     // opening flash drive file
-    fd = open("/dev/sdb", O_RDWR);
+    fd = open("/dev/sda", O_RDWR);
     if (fd == -1)
     {
         perror("open");
