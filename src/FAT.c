@@ -2,6 +2,7 @@
 #include "../headers/dir_entry.h"
 #include "../headers/FAT.h"
 #include <fcntl.h>
+#include "../headers/utils.h"
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -13,48 +14,56 @@ char *builtin_str[] = {
     "cd",
     "ls",
     "cat",
+    "undelete",
+    "delete",
+    "hide",
+    "unhide",
+    "exit",
 };
 
 void (*builtin_func[])(int, char *) = {
     &cd,
     &ls,
     &cat,
+    &undelete,
+    &delete,
+    &hide,
+    &unhide,
+    &exit_f,
+
 };
 
-void set_FAT(int fd)
+void exit_f(int fd, char *arg)
 {
-    FAT32 = (uint32_t *)malloc(BS->FATSz32 * BS->BytesPerSec);
-    if (FAT32 == NULL)
-    {
-        printf("Error malloc\n");
-        exit(0);
-    }
-    lseek(fd, BS->RsvdSecCnt * BS->BytesPerSec, SEEK_SET);
-    if (read(fd, FAT32, BS->FATSz32 * BS->BytesPerSec) == -1)
-    {
-        perror("read");
-        exit(-1);
-    }
+    free(BS);
+    free(currDirEntry);
+    free(fatherDirEntry);
+    free(rootDirEntry);
+    close(fd);
+    exit(1);
 }
 
-void show_FAT(int until_idx)
-{
-    for (int i = 0; i < until_idx; i++)
-    {
-        printf("[%02d]: 0x%08X  ", i, FAT32[i]);
-        if (i % 5 == 4)
-            printf("\n");
-    }
-}
-
-int get_first_sec_of_clus(int n)
+int first_sec(int n)
 {
     return ((n - 2) * BS->SecPerClus) + (BS->RsvdSecCnt + (BS->NumFATs * BS->FATSz32));
 }
 
-void get_file_content(int fd, int init_clu, int file_size, char *content)
+uint32_t next_clu(int fd, int curr)
+{
+    uint32_t next_clu;
+    lseek(fd, (BS->RsvdSecCnt * BS->BytesPerSec) + (curr * 4), SEEK_SET);
+    if (read(fd, &next_clu, 4) == -1)
+    {
+        perror("read");
+        exit(-1);
+    }
+    return next_clu;
+}
+
+char *get_file_content(int fd, int init_clu, int file_size)
 {
     u_int32_t curr_clu = init_clu;
+    char *content = malloc(sizeof(char) * file_size);
     int nbytes = BS->BytesPerSec;
     int bytes_read = 0;
     int sectors_read = 0;
@@ -62,7 +71,7 @@ void get_file_content(int fd, int init_clu, int file_size, char *content)
 
     while (1) // for each cluster
     {
-        lseek(fd, get_first_sec_of_clus(curr_clu) * BS->BytesPerSec, SEEK_SET);
+        lseek(fd, first_sec(curr_clu) * BS->BytesPerSec, SEEK_SET);
         sectors_read = 0;
         while (1) // for each sector
         {
@@ -83,41 +92,28 @@ void get_file_content(int fd, int init_clu, int file_size, char *content)
                 break;
         }
 
-        if ((curr_clu = FAT32[curr_clu]) == FAT32[1])
+        if ((curr_clu = next_clu(fd, curr_clu)) == next_clu(fd, 1))
             break;
     }
+
+    return content;
 }
 
-void print_identation(int count)
+void hide(int fd, char *arg)
 {
-    for (int i = 0; i < count; i++)
-    {
-        printf("    ");
-    }
-    if (count > 0)
-    {
-        printf(" |");
-    }
-
-    for (int i = 0; i < count; i++)
-    {
-        printf("__");
-    }
-}
-
-// TODO: consertar bug no cat
-dir_entry *look_up_entry(int fd, char *arg, u_int8_t flags)
-{
-    dir_entry *auxDirEntry;
-    auxDirEntry = (dir_entry *)malloc(sizeof(dir_entry));
-
-    int8_t buffer[DIR_ENTRY_SIZE];
+    dir_entry *auxDirEntry = malloc(sizeof(dir_entry));
+    uint8_t buffer[DIR_ENTRY_SIZE];
     long_dir_entry *longDirEntry = malloc(sizeof(long_dir_entry));
-    uint8_t *long_name = malloc(sizeof(uint8_t) * 26);
-    int is_long_file;
-    int holding_long_name = 0;
+    int8_t seq_number;
+    int seq_size = 0;
 
-    lseek(fd, get_first_sec_of_clus(currDirEntry->FstClusHI << 8 | currDirEntry->FstClusLO) * BS->BytesPerSec, SEEK_SET);
+    uint16_t long_filename[256];
+    uint16_t shifted_name[256];
+    shifted_name[0] = 'x';
+
+    int multp = 0;
+
+    lseek(fd, first_sec(first_clu(currDirEntry)) * BS->BytesPerSec, SEEK_SET);
 
     while (1)
     {
@@ -126,103 +122,509 @@ dir_entry *look_up_entry(int fd, char *arg, u_int8_t flags)
 
         if (buffer[0] == 0x00)
         {
-            return NULL;
+            free(auxDirEntry);
+            printf("[error] entry not found\n");
+            return;
         }
 
-        is_long_file = (buffer[0x0B] & (AttrReadOnly | AttrHidden | AttrSystem | AttrVolumeLabel)) == 0x0F;
-
-        if (is_long_file)
+        if (is_long_file(buffer[0x0B]))
         {
-            holding_long_name = 1;
+            memcpy(longDirEntry, buffer, sizeof(long_dir_entry));
+
+            if ((longDirEntry->LDIR_Ord & 0x40) == 0x40)
+            {
+                seq_number = longDirEntry->LDIR_Ord - 0x40;
+                seq_size = longDirEntry->LDIR_Ord - 0x40;
+            }
+            else
+                seq_number = longDirEntry->LDIR_Ord;
+
+            if (shifted_name[0] == 'x')
+            {
+                multp = copy_name_fields(longDirEntry, &long_filename[13 * (seq_number - 1)]);
+                multp = copy_name_fields(longDirEntry, &shifted_name[(13 * (seq_number - 1)) + 1]);
+                if ((longDirEntry->LDIR_Ord & 0x40) && multp)
+                {
+                    long_filename[(13 * seq_number) + 1] = 0x0000;
+                    shifted_name[13 * seq_number + 2] = 0x0000;
+                }
+            }
+            if (shifted_name[0] == '.')
+            {
+                write_name_fields(&shifted_name[13 * (seq_number - 1)], fd);
+            }
+
+            if (seq_number == 0x1)
+            {
+                if (is_equal(arg, long_filename))
+                {
+                    if (shifted_name[0] == '.')
+                        return;
+                    shifted_name[0] = '.';
+                    lseek(fd, -DIR_ENTRY_SIZE * seq_size, SEEK_CUR);
+                }
+            }
+        }
+    }
+}
+
+void unhide(int fd, char *arg)
+{
+    dir_entry *auxDirEntry = malloc(sizeof(dir_entry));
+    uint8_t buffer[DIR_ENTRY_SIZE];
+    long_dir_entry *longDirEntry = malloc(sizeof(long_dir_entry));
+    uint16_t long_filename[256];
+
+    int8_t seq_number;
+    int seq_size = 0;
+    int multp = 0;
+    int first_pass = 1;
+
+    lseek(fd, first_sec(first_clu(currDirEntry)) * BS->BytesPerSec, SEEK_SET);
+
+    while (1)
+    {
+        if (read(fd, &buffer, DIR_ENTRY_SIZE) < 1)
+            perror("read dir entry failure");
+
+        if (buffer[0] == 0x00)
+        {
+            free(auxDirEntry);
+            printf("[error] entry not found\n");
+            return;
+        }
+
+        if (is_long_file(buffer[0x0B]))
+        {
+            memcpy(longDirEntry, buffer, sizeof(long_dir_entry));
+
+            if ((longDirEntry->LDIR_Ord & 0x40) == 0x40)
+            {
+                seq_number = longDirEntry->LDIR_Ord - 0x40;
+                seq_size = longDirEntry->LDIR_Ord - 0x40;
+            }
+            else
+                seq_number = longDirEntry->LDIR_Ord;
+
+            if (first_pass)
+            {
+                multp = copy_name_fields(longDirEntry, &long_filename[13 * (seq_number - 1)]);
+                if ((longDirEntry->LDIR_Ord & 0x40) && multp)
+                {
+                    long_filename[(13 * seq_number)] = 0x0000;
+                }
+            }
+            if (!first_pass)
+            {
+                write_name_fields(&long_filename[(13 * (seq_number - 1)) + 1], fd);
+            }
+
+            if (seq_number == 0x1)
+            {
+                if (is_equal(arg, long_filename))
+                {
+                    if (!first_pass)
+                        return;
+                    first_pass = 0;
+                    lseek(fd, -DIR_ENTRY_SIZE * seq_size, SEEK_CUR);
+                }
+            }
+        }
+    }
+}
+
+void delete (int fd, char *arg)
+{
+    dir_entry *auxDirEntry = malloc(sizeof(dir_entry));
+    uint8_t buffer[DIR_ENTRY_SIZE];
+    long_dir_entry *longDirEntry = malloc(sizeof(long_dir_entry));
+
+    uint16_t long_filename[256];
+
+    int8_t seq_number;
+
+    int multp = 0;
+    char *short_name;
+    int has_long_name = 0;
+    char name_deleted[11];
+    name_deleted[0] = 0xE5;
+
+    lseek(fd, first_sec(first_clu(currDirEntry)) * BS->BytesPerSec, SEEK_SET);
+
+    while (1)
+    {
+        if (read(fd, &buffer, DIR_ENTRY_SIZE) < 1)
+            perror("read dir entry failure");
+
+        if (buffer[0] == 0x00)
+        {
+            free(auxDirEntry);
+            printf("[error] entry not found\n");
+            return;
+        }
+
+        if (is_long_file(buffer[0x0B]))
+        {
+            has_long_name = 1;
 
             memcpy(longDirEntry, buffer, sizeof(long_dir_entry));
-            memcpy(long_name, longDirEntry->LDIR_Name1, 10);
-            memcpy(&long_name[10], longDirEntry->LDIR_Name2, 12);
-            memcpy(&long_name[22], longDirEntry->LDIR_Name3, 4);
+
+            if ((longDirEntry->LDIR_Ord & 0x40) == 0x40)
+                seq_number = longDirEntry->LDIR_Ord - 0x40;
+            else
+                seq_number = longDirEntry->LDIR_Ord;
+
+            multp = copy_name_fields(longDirEntry, &long_filename[13 * (seq_number - 1)]);
+            if ((longDirEntry->LDIR_Ord & 0x40) && multp)
+                long_filename[(13 * seq_number) + 1] = 0x0000;
         }
         else
         {
-            memcpy(auxDirEntry, buffer, sizeof(dir_entry));
-            if (flags & DirEntries) // ls command
+            memcpy(auxDirEntry, buffer, sizeof(long_dir_entry));
+
+            if (has_long_name && is_equal(arg, long_filename))
             {
-                show_entry(auxDirEntry, long_name, holding_long_name);
+                memcpy(&name_deleted[1], auxDirEntry->Name, 10);
+                lseek(fd, -DIR_ENTRY_SIZE, SEEK_CUR);
+                if (write(fd, name_deleted, 11) < 1)
+                    perror("delete entry failure");
+                return;
             }
             else
             {
-                if (memcmp(buffer, arg, strlen(arg)) == 0) // cd and cat commands
-                    return auxDirEntry;
+                short_name = get_short_name(auxDirEntry);
+                if (strcmp(short_name, arg) == 0)
+                {
+                    memcpy(&name_deleted[1], auxDirEntry->Name, 10);
+                    lseek(fd, -DIR_ENTRY_SIZE, SEEK_CUR);
+                    if (write(fd, name_deleted, 11) < 1)
+                        perror("delete entry failure");
+                    return;
+                }
             }
-            holding_long_name = 0;
         }
     }
-    free(auxDirEntry);
+}
+
+void undelete(int fd, char *arg)
+{
+    dir_entry *auxDirEntry = malloc(sizeof(dir_entry));
+    uint8_t buffer[DIR_ENTRY_SIZE];
+    long_dir_entry *longDirEntry = malloc(sizeof(long_dir_entry));
+
+    uint16_t long_filename[256];
+
+    int8_t seq_number;
+
+    int multp = 0;
+    char *short_name;
+    int has_long_name = 0;
+    char name_deleted[11];
+    name_deleted[0] = 0xE5;
+
+    lseek(fd, first_sec(first_clu(currDirEntry)) * BS->BytesPerSec, SEEK_SET);
+
+    while (1)
+    {
+        if (read(fd, &buffer, DIR_ENTRY_SIZE) < 1)
+            perror("read dir entry failure");
+
+        if (buffer[0] == 0x00)
+        {
+            free(auxDirEntry);
+            printf("returning because 0x00\n");
+            return;
+        }
+
+        if (is_long_file(buffer[0x0B]))
+        {
+            has_long_name = 1;
+
+            memcpy(longDirEntry, buffer, sizeof(long_dir_entry));
+
+            if ((longDirEntry->LDIR_Ord & 0x40) == 0x40)
+                seq_number = longDirEntry->LDIR_Ord - 0x40;
+            else
+                seq_number = longDirEntry->LDIR_Ord;
+
+            multp = copy_name_fields(longDirEntry, &long_filename[13 * (seq_number - 1)]);
+            if ((longDirEntry->LDIR_Ord & 0x40) && multp)
+                long_filename[(13 * seq_number) + 1] = 0x0000;
+        }
+        else
+        {
+            memcpy(auxDirEntry, buffer, sizeof(long_dir_entry));
+
+            if (is_deleted(buffer[0]))
+            {
+                if (has_long_name && is_equal(arg, long_filename))
+                {
+                    lseek(fd, -DIR_ENTRY_SIZE, SEEK_CUR);
+                    if (write(fd, &auxDirEntry->Name[1], 10) < 1)
+                        perror("undelete entry failure");
+
+                    return;
+                }
+            }
+        }
+    }
+}
+
+dir_entry *get_entry(int fd, char *arg)
+{
+    dir_entry *auxDirEntry = malloc(sizeof(dir_entry));
+    uint8_t buffer[DIR_ENTRY_SIZE];
+    long_dir_entry *longDirEntry = malloc(sizeof(long_dir_entry));
+    int8_t seq_number;
+
+    uint16_t long_filename[256];
+    int multp = 0;
+    char *short_name;
+    int has_long_name = 0;
+
+    lseek(fd, first_sec(first_clu(currDirEntry)) * BS->BytesPerSec, SEEK_SET);
+
+    while (1)
+    {
+        if (read(fd, &buffer, DIR_ENTRY_SIZE) < 1)
+            perror("read dir entry failure");
+
+        if (buffer[0] == 0x00)
+        {
+            free(auxDirEntry);
+            return NULL;
+        }
+
+        if (is_long_file(buffer[0x0B]))
+        {
+            if (buffer[0] != 0xE5)
+            {
+                has_long_name = 1;
+                memcpy(longDirEntry, buffer, sizeof(long_dir_entry));
+
+                if ((longDirEntry->LDIR_Ord & 0x40) == 0x40)
+                    seq_number = longDirEntry->LDIR_Ord - 0x40;
+                else
+                    seq_number = longDirEntry->LDIR_Ord;
+
+                multp = copy_name_fields(longDirEntry, &long_filename[13 * (seq_number - 1)]);
+                if ((longDirEntry->LDIR_Ord & 0x40) && multp)
+                    long_filename[13 * seq_number] = 0x0000;
+            }
+        }
+        else
+        {
+            memcpy(auxDirEntry, buffer, sizeof(buffer));
+            if (has_long_name)
+            {
+                if (is_equal(arg, long_filename))
+                {
+                    auxDirEntry->LongName = malloc(sizeof(uint16_t) * 256);
+                    memcpy(auxDirEntry->LongName, long_filename, 256);
+                    return auxDirEntry;
+                }
+            }
+            else
+            {
+                short_name = get_short_name(auxDirEntry);
+                if (strcmp(short_name, arg) == 0)
+                {
+                    auxDirEntry->LongName = NULL;
+                    return auxDirEntry;
+                }
+            }
+            has_long_name = 0;
+        }
+    }
+}
+
+dir_entry *get_entry_from_dot_entry(int fd, dir_entry *entry, dir_entry *start)
+{
+    dir_entry *auxDirEntry = malloc(sizeof(dir_entry));
+    uint8_t buffer[DIR_ENTRY_SIZE];
+
+    long_dir_entry *longDirEntry = malloc(sizeof(long_dir_entry));
+    int8_t seq_number;
+    uint16_t long_filename[256];
+    int multp = 0;
+    int has_long_name = 0;
+
+    lseek(fd, first_sec(first_clu(start)) * BS->BytesPerSec, SEEK_SET);
+    while (1)
+    {
+        if (read(fd, &buffer, DIR_ENTRY_SIZE) < 1)
+            perror("read dir entry failure");
+
+        if (buffer[0] == 0x00)
+        {
+            printf("no found in %s\n", start->Name);
+            free(auxDirEntry);
+            return NULL;
+        }
+
+        if (is_long_file(buffer[0x0B]))
+        {
+            has_long_name = 1;
+            memcpy(longDirEntry, buffer, sizeof(long_dir_entry));
+
+            if ((longDirEntry->LDIR_Ord & 0x40) == 0x40)
+                seq_number = longDirEntry->LDIR_Ord - 0x40;
+            else
+                seq_number = longDirEntry->LDIR_Ord;
+
+            multp = copy_name_fields(longDirEntry, &long_filename[13 * (seq_number - 1)]);
+            if ((longDirEntry->LDIR_Ord & 0x40) && multp)
+                long_filename[13 * seq_number] = 0x0000;
+        }
+        else
+        {
+            memcpy(auxDirEntry, buffer, sizeof(buffer));
+            if (first_clu(auxDirEntry) == first_clu(entry))
+            {
+                if (has_long_name)
+                {
+                    auxDirEntry->LongName = malloc(sizeof(uint16_t) * 256);
+                    memcpy(auxDirEntry->LongName, long_filename, 256);
+                }
+                else
+                    auxDirEntry->LongName = NULL;
+                return auxDirEntry;
+            }
+            if (is_dir(auxDirEntry) && auxDirEntry->Name[0] != '.')
+            {
+                get_entry_from_dot_entry(fd, entry, auxDirEntry);
+            }
+            has_long_name = 0;
+        }
+    }
 }
 
 void cat(int fd, char *arg)
 {
-    dir_entry *auxDirEntry;
-    auxDirEntry = (dir_entry *)malloc(sizeof(dir_entry));
-    auxDirEntry = look_up_entry(fd, arg, 0x4);
-    if (auxDirEntry == NULL)
+    dir_entry *auxDirEntry = get_entry(fd, arg);
+    if (!auxDirEntry)
     {
         printf("[error] no such file in directory\n");
         return;
     }
-    if (auxDirEntry->Attr & AttrDirectory)
+    if (is_dir(auxDirEntry))
     {
         printf("[error] name is a directory, not a file\n");
         return;
     }
 
-    char *content = malloc(sizeof(char) * auxDirEntry->FileSize);
-    get_file_content(fd, auxDirEntry->FstClusHI << 8 | auxDirEntry->FstClusLO, auxDirEntry->FileSize, content);
-    printf("%s\n", content);
+    char *content = get_file_content(fd, first_clu(auxDirEntry), auxDirEntry->FileSize);
+    printf("%s", content);
     free(content);
     free(auxDirEntry);
     return;
 }
 
-void ls(int fd, char *arg)
-{
-    printf("\t%-12s%-20s%-10s\t\n", "File type", "Short name", "Long name");
-    printf("\t===========================================\n");
-    look_up_entry(fd, arg, 0x1);
-}
-
 void cd(int fd, char *arg)
 {
+    dir_entry *auxDirEntry;
+
     if (strcmp(arg, ".") == 0)
-    {
         return;
-    }
+
     if (strcmp(arg, "..") == 0)
     {
         *currDirEntry = *fatherDirEntry;
-        fatherDirEntry = look_up_entry(fd, currDirEntry->Name, 0x4);
-        if (fatherDirEntry == NULL)
-        {
-            fatherDirEntry = rootDirEntry;
-        }
-        return;
-    }
-    dir_entry *auxDirEntry;
-    auxDirEntry = (dir_entry *)malloc(sizeof(dir_entry));
-    auxDirEntry = look_up_entry(fd, arg, 0x4);
-    if (auxDirEntry == NULL)
-    {
-        printf("No such directory\n");
-    }
-    else if (auxDirEntry->Attr & AttrDirectory)
-    {
-        *fatherDirEntry = *currDirEntry;
-        *currDirEntry = *auxDirEntry;
+        // before ok
+
+        auxDirEntry = get_entry(fd, arg);
+        // apaga o long name de currDirEntry e de fatherDirEntry
+
+        if (!auxDirEntry || first_clu(auxDirEntry) == 0x00)
+            *fatherDirEntry = *rootDirEntry;
+        else
+            *fatherDirEntry = *get_entry_from_dot_entry(fd, auxDirEntry, rootDirEntry);
+
+        free(auxDirEntry);
     }
     else
     {
-        printf("File is not a directory\n");
+        auxDirEntry = get_entry(fd, arg);
+        if (!auxDirEntry)
+            printf("No such directory\n");
+        else if (is_dir(auxDirEntry))
+        {
+            *fatherDirEntry = *currDirEntry;
+            *currDirEntry = *auxDirEntry;
+        }
+        else
+            printf("File is not a directory\n");
+    }
+    return;
+}
+
+void ls(int fd, char *arg)
+{
+    dir_entry *auxDirEntry = (dir_entry *)malloc(sizeof(dir_entry));
+
+    uint8_t buffer[DIR_ENTRY_SIZE];
+
+    long_dir_entry *longDirEntry = malloc(sizeof(long_dir_entry));
+    int8_t seq_number;
+    uint16_t long_filename[256];
+
+    int multp = 0;
+    int show_hidden = 0;
+    int show_deleted = 0;
+    int has_long_name = 0;
+    if (arg && strcmp(arg, "--hidden") == 0)
+        show_hidden = 1;
+
+    if (arg && strcmp(arg, "--deleted") == 0)
+        show_deleted = 1;
+
+    lseek(fd, first_sec(first_clu(currDirEntry)) * BS->BytesPerSec, SEEK_SET);
+
+    print_ls_header();
+
+    while (1)
+    {
+        if (read(fd, buffer, DIR_ENTRY_SIZE) < 1)
+            perror("read dir entry failure");
+
+        if (buffer[0] == 0x00)
+        {
+            free(auxDirEntry);
+            free(longDirEntry);
+            return;
+        }
+
+        if (is_long_file(buffer[0x0B]))
+        {
+            if (buffer[0] != 0xE5)
+            {
+                has_long_name = 1;
+                memcpy(longDirEntry, buffer, sizeof(long_dir_entry));
+
+                if ((longDirEntry->LDIR_Ord & 0x40) == 0x40)
+                    seq_number = longDirEntry->LDIR_Ord - 0x40;
+                else
+                    seq_number = longDirEntry->LDIR_Ord;
+
+                multp = copy_name_fields(longDirEntry, &long_filename[13 * (seq_number - 1)]);
+                if ((longDirEntry->LDIR_Ord & 0x40) && multp)
+                    long_filename[13 * seq_number] = 0x0000;
+            }
+        }
+        else
+        {
+            memcpy(auxDirEntry, buffer, sizeof(buffer));
+            if (((auxDirEntry->Name[0] == '.') || (has_long_name && long_filename[0] == '.')) && !show_hidden)
+                ;
+            else if (is_deleted(auxDirEntry->Name[0]) && !show_deleted)
+                ;
+            else
+                show_entry(auxDirEntry, long_filename, has_long_name);
+            has_long_name = 0;
+        }
     }
     free(auxDirEntry);
-    return;
+    free(longDirEntry);
 }
 
 void exec(int fd, char **tokens)
@@ -230,7 +632,7 @@ void exec(int fd, char **tokens)
     char *cmd = tokens[0];
     char *args = tokens[1];
 
-    for (size_t i = 0; i < 4; i++)
+    for (size_t i = 0; i < 8; i++)
     {
         if (strcmp(cmd, builtin_str[i]) == 0)
         {

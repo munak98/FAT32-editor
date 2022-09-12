@@ -10,9 +10,11 @@
 
 void show_prompt()
 {
-
-    printf("%s", currDirEntry->Name);
-    printf("-> ");
+    if (currDirEntry->LongName)
+        print_long_name(currDirEntry->LongName);
+    else
+        printf("%s", currDirEntry->Name);
+    printf(" -> ");
 }
 
 char *read_line(void)
@@ -80,13 +82,38 @@ char **split(char *line, char *delimiter)
 
     tokens[0] = trim(strtok(line, delimiter), ' ');
     if ((token = strtok(NULL, "\n")) != NULL)
-    {
         tokens[1] = token;
-    }
     else
-    {
         tokens[1] = NULL;
-    }
 
     return tokens;
+}
+
+void free_content(uint8_t **vector)
+{
+    int i = 0;
+    while (vector[i] != NULL)
+    {
+        free(vector[i]);
+        i++;
+    }
+}
+
+void print_ls_header()
+{
+    printf("\t%-12s%-10s\t\n", "Type", "Name");
+    printf("\t===============================\n");
+}
+
+int is_equal(char *name, uint16_t *long_name)
+{
+    size_t i = 0;
+    for (i = 0; i < strlen(name); i++)
+    {
+        if (name[i] != long_name[i])
+        {
+            return 0;
+        }
+    }
+    return 1;
 }
