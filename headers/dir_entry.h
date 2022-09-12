@@ -80,6 +80,7 @@ uint8_t *get_long_name(long_dir_entry *);
 void print_long_name(uint16_t *);
 void init_DirEntry();
 int copy_name_fields(long_dir_entry *, uint16_t *);
+void write_name_fields(uint16_t *, int);
 int size(uint8_t *, int);
 
 void show_entry(dir_entry *, uint16_t *, int);

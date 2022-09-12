@@ -12,8 +12,10 @@ void cd(int, char *);
 void ls(int, char *);
 void cat(int, char *);
 void undelete(int, char *);
+void delete (int, char *);
 void hide(int, char *);
 void unhide(int, char *);
+void exit_f(int, char *);
 
 void exec(int, char **);
 

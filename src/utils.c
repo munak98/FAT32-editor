@@ -101,18 +101,19 @@ void free_content(uint8_t **vector)
 
 void print_ls_header()
 {
-    printf("\t%-12s%-15.11s%-10s\t\n", "File type", "Short name", "Long name");
-    printf("\t=============================================\n");
+    printf("\t%-12s%-10s\t\n", "Type", "Name");
+    printf("\t===============================\n");
 }
 
 int is_equal(char *name, uint16_t *long_name)
 {
     size_t i = 0;
-    for (i = 0; i <= strlen(name); i++)
+    for (i = 0; i < strlen(name); i++)
     {
         if (name[i] != long_name[i])
+        {
             return 0;
+        }
     }
-
     return 1;
 }

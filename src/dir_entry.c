@@ -61,6 +61,20 @@ int copy_name_fields(long_dir_entry *longDirEntry, uint16_t *long_filename)
         return 0;
 }
 
+void write_name_fields(uint16_t *shifted_name, int fd)
+{
+    lseek(fd, -DIR_ENTRY_SIZE + 1, SEEK_CUR);
+    if (write(fd, shifted_name, 5 * sizeof(uint16_t)) < 1)
+        perror("delete entry failure");
+
+    lseek(fd, 3, SEEK_CUR);
+    if (write(fd, &shifted_name[5], 6 * sizeof(uint16_t)) < 1)
+        perror("delete entry failure");
+    lseek(fd, 2, SEEK_CUR);
+    if (write(fd, &shifted_name[11], 2 * sizeof(uint16_t)) < 1)
+        perror("delete entry failure");
+}
+
 void print_long_name(uint16_t *name)
 {
     int i = 0;
@@ -75,17 +89,18 @@ void print_long_name(uint16_t *name)
 
 void show_entry(dir_entry *entry, uint16_t *long_name, int has_long_name)
 {
+    if (is_volum(entry))
+        return;
     if (is_dir(entry))
-        printf("\t%-12s%-15.11s", "DIR", entry->Name);
-
-    else if (is_volum(entry))
-        printf("\t%-12s%-15.11s", "VOLUME", entry->Name);
+        printf("\t%-12s", "DIR");
 
     else
-        printf("\t%-12s%-15.11s", "FILE", entry->Name);
+        printf("\t%-12s", "FILE");
 
     if (has_long_name)
         print_long_name(long_name);
+    else
+        printf("%s ", entry->Name);
 
     printf("\n");
 }
